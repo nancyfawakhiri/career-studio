@@ -1,60 +1,75 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 
-type Props = {
+export function CharacterPanel({
+  careerTitle,
+  maleUrl,
+  femaleUrl,
+}: {
   careerTitle: string;
-  // Later you’ll pass real image URLs from Supabase/assets
-  maleSrc?: string;
-  femaleSrc?: string;
-};
+  maleUrl?: string | null;
+  femaleUrl?: string | null;
+}) {
+  const hasMale = !!maleUrl;
+  const hasFemale = !!femaleUrl;
 
-export function CharacterPanel({ careerTitle, maleSrc, femaleSrc }: Props) {
-  const [variant, setVariant] = useState<"female" | "male">("female");
+  const defaultVariant = useMemo<"female" | "male">(() => {
+    if (hasFemale) return "female";
+    return "male";
+  }, [hasFemale]);
 
-  const label = useMemo(() => {
-    if (variant === "female") return "Female";
-    return "Male";
-  }, [variant]);
+  const [variant, setVariant] = useState<"female" | "male">(defaultVariant);
+
+  const activeUrl = variant === "female" ? femaleUrl : maleUrl;
+  const canToggle = hasMale && hasFemale;
 
   return (
-    <div className="flex flex-col items-center md:items-start">
-      {/* Character image slot */}
-      <div className="relative h-[380px] w-[280px]">
-        <div className="absolute inset-0 rounded-3xl bg-white/5 border border-white/10" />
-        <div className="absolute inset-0 flex items-center justify-center text-white/50 text-sm">
-          {careerTitle} – {label} character
+    <div className="flex flex-col items-center md:items-start gap-4">
+      <div className="relative h-[360px] w-[260px] rounded-3xl border border-white/15 bg-white/5 overflow-hidden">
+        {activeUrl ? (
+          <Image
+            src={activeUrl}
+            alt={`${careerTitle} character`}
+            fill
+            className="object-contain"
+            priority
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-white/50 text-sm">
+            Character image
+          </div>
+        )}
+      </div>
+
+      {/* Toggle only if both exist */}
+      {canToggle ? (
+        <div className="inline-flex rounded-full border border-white/15 bg-white/5 p-1">
+          <button
+            onClick={() => setVariant("female")}
+            className={
+              "px-4 py-2 rounded-full text-sm transition " +
+              (variant === "female"
+                ? "bg-white/15 text-white"
+                : "text-white/70 hover:text-white")
+            }
+          >
+            Female
+          </button>
+          <button
+            onClick={() => setVariant("male")}
+            className={
+              "px-4 py-2 rounded-full text-sm transition " +
+              (variant === "male"
+                ? "bg-white/15 text-white"
+                : "text-white/70 hover:text-white")
+            }
+          >
+            Male
+          </button>
         </div>
-      </div>
-
-      {/* Toggle */}
-      <div className="mt-4 inline-flex rounded-2xl border border-white/15 bg-white/5 p-1">
-        <button
-          onClick={() => setVariant("female")}
-          className={
-            variant === "female"
-              ? "px-4 py-2 rounded-xl bg-white/15 text-white text-sm"
-              : "px-4 py-2 rounded-xl text-white/70 hover:text-white text-sm"
-          }
-        >
-          Female
-        </button>
-        <button
-          onClick={() => setVariant("male")}
-          className={
-            variant === "male"
-              ? "px-4 py-2 rounded-xl bg-white/15 text-white text-sm"
-              : "px-4 py-2 rounded-xl text-white/70 hover:text-white text-sm"
-          }
-        >
-          Male
-        </button>
-      </div>
-
-      {/* Note: later we’ll use maleSrc/femaleSrc with <Image /> */}
-      <div className="mt-2 text-xs text-white/50">
-        (Later: swap the actual character image based on toggle)
-      </div>
+      ) : null}
     </div>
   );
 }
