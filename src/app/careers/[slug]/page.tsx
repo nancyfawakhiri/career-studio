@@ -2,6 +2,14 @@ import { BackgroundShell } from "@/components/site/BackgroundShell";
 import { Navbar } from "@/components/site/Navbar";
 import { careers } from "@/lib/mock/careers";
 import { CharacterPanel } from "@/components/site/CharacterPanel";
+import { mockCareerProfile } from "@/lib/mock/careerProfile";
+import { SectionCard } from "@/components/profile/SectionCard";
+import { IntroSection } from "@/components/profile/sections/IntroSection";
+import { RoleSection } from "@/components/profile/sections/RoleSection";
+import { SkillsSection } from "@/components/profile/sections/SkillsSection";
+import { EducationSection } from "@/components/profile/sections/EducationSection";
+import { WorkGlanceSection } from "@/components/profile/sections/WorkGlanceSection";
+
 
 
 
@@ -44,10 +52,7 @@ export default async function CareerProfilePage({
   const sectionTitle =
     SECTIONS.find((s) => s.key === section)?.label ?? "Intro";
 
-  const sectionBody =
-    section === "intro"
-      ? career.description
-      : "Coming next — this section will be populated from Supabase.";
+  
 
   return (
     <BackgroundShell>
@@ -118,22 +123,35 @@ export default async function CareerProfilePage({
                     ))}
                   </div>
 
-                  {/* Scrollable content card */}
-                  <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-6">
-                    <h2 className="text-xl font-semibold">{sectionTitle}</h2>
+                  <SectionCard title={sectionTitle}>
+  {section === "intro" && (
+    <IntroSection text={career.description || mockCareerProfile.introLong} />
+  )}
 
-                    <div
-                      className="
-                        mt-4 max-h-[260px] overflow-y-auto pr-2
-                        text-white/70 leading-relaxed whitespace-pre-line
-                        scrollbar-thin
-                        scrollbar-thumb-transparent
-                        hover:scrollbar-thumb-white/30
-                      "
-                    >
-                      {sectionBody}
-                    </div>
-                  </div>
+  {section === "role" && <RoleSection tasks={mockCareerProfile.tasks} />}
+
+  {section === "skills" && (
+    <SkillsSection
+      hard={mockCareerProfile.skills.hard}
+      soft={mockCareerProfile.skills.soft}
+    />
+  )}
+
+  {section === "education" && (
+    <EducationSection slices={mockCareerProfile.educationSlices} />
+  )}
+
+  {section === "work" && (
+    <WorkGlanceSection rows={mockCareerProfile.workAtAGlance} />
+  )}
+
+  {section === "personality" && (
+    <div className="text-white/70 leading-relaxed">
+      Coming next — personality summary from Supabase.
+    </div>
+  )}
+</SectionCard>
+
                 </div>
               </div>
             </div>
