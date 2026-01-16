@@ -16,6 +16,7 @@ import { supabase } from "@/lib/supabase/client";
 import { educationLabel } from "@/lib/mappers/education";
 
 
+
 const SECTIONS = [
   { key: "intro", label: "Intro" },
   { key: "role", label: "The Role" },
@@ -61,6 +62,12 @@ export default async function CareerProfilePage({
   }
 
   const careerId = career.id;
+  // Categories (RIASEC buckets) for this career
+const { data: categories, error: categoriesError } = await supabase
+  .from("career_interest_categories")
+  .select("interest_categories(title_en)")
+  .eq("career_id", careerId);
+
 
   // 2) Fetch all section data + character assets
   const [tasksRes, skillsRes, eduRes, workRes, charactersRes] =
@@ -139,7 +146,13 @@ export default async function CareerProfilePage({
   );
 
   const anyErrors =
-    tasksRes.error || skillsRes.error || eduRes.error || workRes.error || charactersRes.error;
+  tasksRes.error ||
+  skillsRes.error ||
+  eduRes.error ||
+  workRes.error ||
+  charactersRes.error ||
+  categoriesError;
+
 
   return (
     <BackgroundShell>
@@ -177,11 +190,47 @@ export default async function CareerProfilePage({
                     {career.intro_en}
                   </p>
 
-                  <div className="mt-8 flex gap-4">
-                    <div className="h-12 w-12 rounded-full bg-white/10 border border-white/15" />
-                    <div className="h-12 w-12 rounded-full bg-white/10 border border-white/15" />
-                    <div className="h-12 w-12 rounded-full bg-white/10 border border-white/15" />
-                  </div>
+                      <div className="mt-8">
+  {/* Title */}
+  <div className="text-sm text-white/60">
+    This career is a great fit if you are:
+  </div>
+
+  {/* Pills */}
+  <div className="mt-3 flex flex-wrap gap-3">
+    {(categories ?? []).map((c: any, i: number) => (
+      <span
+        key={i}
+        className="px-4 py-2 rounded-full bg-white/10 border border-white/15 text-sm text-white/80"
+      >
+        {c.interest_categories.title_en}
+      </span>
+    ))}
+  </div>
+
+  {/* Explanation + links */}
+  <div className="mt-3 text-xs text-white/50 leading-relaxed">
+    Based on{" "}
+    <a
+      href="https://en.wikipedia.org/wiki/Holland_Codes"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline underline-offset-4 hover:text-white"
+    >
+      Holland’s Interests Model
+    </a>
+    .{" "}
+    <br className="hidden sm:block" />
+    Not sure what your interests are?{" "}
+    <a
+      href="/interests"
+      className="underline underline-offset-4 hover:text-white"
+    >
+      Find out here
+    </a>
+    .
+  </div>
+</div>
 
                   <div className="mt-8">
                     <div className="text-sm text-white/60">Salary</div>
@@ -213,6 +262,8 @@ export default async function CareerProfilePage({
                         {skillsRes.error && <li>Skills: {skillsRes.error.message}</li>}
                         {eduRes.error && <li>Education: {eduRes.error.message}</li>}
                         {workRes.error && <li>Work: {workRes.error.message}</li>}
+                        {categoriesError && <li>Categories: {categoriesError.message}</li>}
+
                         {charactersRes.error && <li>Characters: {charactersRes.error.message}</li>}
                       </ul>
                       <div className="mt-3 text-red-100/80">
