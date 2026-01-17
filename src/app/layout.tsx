@@ -1,15 +1,15 @@
 import "./globals.css";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Montserrat } from "next/font/google";
 
-const font = Plus_Jakarta_Sans({
+const montserrat = Montserrat({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={font.className}>{children}</body>
+      <body className={montserrat.className}>{children}</body>
     </html>
   );
 }

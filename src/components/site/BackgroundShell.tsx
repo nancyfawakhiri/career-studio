@@ -3,7 +3,7 @@ export function BackgroundShell({ children }: { children: React.ReactNode }) {
     <div
       className="relative min-h-screen text-white overflow-hidden"
       style={{
-        backgroundColor: "#061A33",
+        backgroundColor: "#001F3F",
         backgroundImage: `
           radial-gradient(ellipse at top, rgba(255,255,255,0.10), transparent 30%),
           radial-gradient(circle at 80% 30%, rgba(0,180,255,0.14), transparent 55%),
