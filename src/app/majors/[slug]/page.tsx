@@ -1,97 +1,159 @@
 import { BackgroundShell } from "@/components/site/BackgroundShell";
 import { Navbar } from "@/components/site/Navbar";
-import { LibraryCard } from "@/components/cards/LibraryCard";
 import { supabase } from "@/lib/supabase/client";
+import { SectionCard } from "@/components/profile/SectionCard";
+import { IntroSection } from "@/components/profile/sections/IntroSection";
+import { MajorClassesSection } from "@/components/profile/sections/MajorClassesSection";
+import { MajorSkillsSection } from "@/components/profile/sections/MajorSkillsSection";
+import { MajorCareersSection } from "@/components/profile/sections/MajorCareersSection";
 
-const BUCKETS = [
-  { key: "artistic", label: "Artistic" },
-  { key: "social", label: "Social" },
-  { key: "enterprising", label: "Enterprising" },
-  { key: "investigative", label: "Investigative" },
-  { key: "conventional", label: "Conventional" },
-  { key: "realistic", label: "Realistic" },
+
+const SECTIONS = [
+  { key: "intro", label: "Intro" },
+  { key: "classes", label: "Classes" },
+  { key: "skills", label: "Skills" },
+  { key: "careers", label: "Careers" },
 ] as const;
 
-type BucketKey = (typeof BUCKETS)[number]["key"];
+type SectionKey = (typeof SECTIONS)[number]["key"];
 
-export default async function MajorsLibraryPage({
+export default async function MajorProfilePage({
+  params,
   searchParams,
 }: {
-  searchParams: Promise<{ bucket?: string }>;
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ section?: string }>;
 }) {
+  const { slug } = await params;
   const sp = await searchParams;
-  const bucket = (sp.bucket ?? "artistic") as BucketKey;
+  const section = (sp.section as SectionKey) || "intro";
 
-  const { data, error } = await supabase
-    .from("major_interest_categories")
-    .select(
-      `
-      majors ( slug, title_en, intro_en ),
-      interest_categories!inner ( key )
-    `
-    )
-    .eq("interest_categories.key", bucket);
+  const { data: major, error } = await supabase
+    .from("majors")
+    .select("id, slug, title_en, intro_en, intro_ar")
+    .eq("slug", slug)
+    .single();
 
-  if (error) {
+  if (error || !major) {
     return (
       <BackgroundShell>
         <Navbar />
         <main className="mx-auto max-w-6xl px-6 pt-16 pb-20">
-          <h1 className="text-3xl font-semibold">Error loading majors</h1>
-          <p className="mt-3 text-white/70">{error.message}</p>
+          <h1 className="text-3xl font-semibold">Major not found</h1>
+          {error?.message && <p className="mt-3 text-white/70">{error.message}</p>}
         </main>
       </BackgroundShell>
     );
   }
+  // Load section data (only fetch what we need for the active section)
+let classes: Array<{
+  id: string;
+  title_en: string;
+  description_en: string | null;
+  video_url: string | null;
+}> = [];
 
-  const rows =
-    (data ?? [])
-      .map((r: any) => r.majors)
-      .filter(Boolean) as Array<{
-      slug: string;
-      title_en: string;
-      intro_en: string;
-    }>;
+let skills: Array<{ id: string; name_en: string; type: "hard" | "soft" }> = [];
+
+let linkedCareers: Array<{ slug: string; title_en: string; intro_en: string }> = [];
+
+if (section === "classes") {
+  const { data, error } = await supabase
+    .from("major_classes")
+    .select("id, title_en, description_en, video_url, order_index")
+    .eq("major_id", major.id)
+    .order("order_index", { ascending: true });
+
+  if (!error && data) classes = data;
+}
+
+if (section === "skills") {
+  const { data, error } = await supabase
+    .from("major_skills")
+    .select(
+      `
+      skills (
+        id, name_en, type
+      )
+    `
+    )
+    .eq("major_id", major.id);
+
+  if (!error && data) {
+    skills = (data as any[])
+      .map((r) => r.skills)
+      .filter(Boolean) as any;
+  }
+}
+
+if (section === "careers") {
+  const { data, error } = await supabase
+    .from("career_majors")
+    .select(
+      `
+      careers ( slug, title_en, intro_en )
+    `
+    )
+    .eq("major_id", major.id);
+
+  if (!error && data) {
+    linkedCareers = (data as any[])
+      .map((r) => r.careers)
+      .filter(Boolean) as any;
+  }
+}
+
+
+  const sectionTitle = SECTIONS.find((s) => s.key === section)?.label ?? "Intro";
 
   return (
     <BackgroundShell>
       <Navbar />
-
       <main className="mx-auto max-w-6xl px-6 pt-10 pb-20">
-        <h1 className="text-5xl font-semibold tracking-tight text-center">
-          Majors Library
-        </h1>
-
-        {/* Buckets */}
-        <div className="mt-10 flex flex-wrap justify-center gap-6 text-sm text-white/70">
-          {BUCKETS.map((b) => (
-            <a
-              key={b.key}
-              href={`/majors?bucket=${b.key}`}
-              className={b.key === bucket ? "text-white" : "hover:text-white"}
-            >
-              {b.label}
-            </a>
-          ))}
-        </div>
-
-        {/* Cards */}
-        <section className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {rows.map((m) => (
-            <LibraryCard
-              key={m.slug}
-              title={m.title_en}
-              description={m.intro_en}
-              href={`/majors/${m.slug}?section=intro`}
-            />
-          ))}
-        </section>
-
-        {rows.length === 0 && (
-          <div className="mt-10 text-center text-white/70">
-            No majors linked to <span className="text-white">{bucket}</span> yet.
+        <div className="rounded-3xl border border-white/15 bg-white/5 p-8 md:p-12 shadow-[0_25px_80px_rgba(0,0,0,0.5)]">
+          <div className="inline-flex items-center rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs text-white/80">
+            Major
           </div>
-        )}
+
+          <h1 className="mt-4 text-5xl font-semibold tracking-tight">
+            {major.title_en}
+          </h1>
+
+          <p className="mt-4 text-white/70 leading-relaxed max-w-2xl line-clamp-2">
+            {major.intro_en}
+          </p>
+
+          {/* Tabs */}
+          <div className="mt-10 flex gap-8 overflow-x-auto text-white/70 pb-2">
+            {SECTIONS.map((s) => (
+              <a
+                key={s.key}
+                href={`/majors/${major.slug}?section=${s.key}`}
+                className={
+                  s.key === section
+                    ? "whitespace-nowrap text-white"
+                    : "whitespace-nowrap hover:text-white"
+                }
+              >
+                {s.label}
+              </a>
+            ))}
+          </div>
+
+          {/* Content */}
+          <SectionCard title={sectionTitle}>
+            {section === "intro" && (
+              <IntroSection text={major.intro_en ?? ""} />
+            )}
+
+            {section === "classes" && <MajorClassesSection classes={classes} />}
+
+{section === "skills" && <MajorSkillsSection skills={skills} />}
+
+{section === "careers" && <MajorCareersSection careers={linkedCareers} />}
+
+          </SectionCard>
+        </div>
       </main>
     </BackgroundShell>
   );
