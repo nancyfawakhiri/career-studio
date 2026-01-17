@@ -44,7 +44,8 @@ export default async function CareerProfilePage({
   // 1) Career core + background asset
   const { data: career, error: careerError } = await supabase
     .from("careers")
-    .select("id, slug, title_en, intro_en, personality_summary_en")
+    .select("id, slug, title_en, intro_en, intro_ar, description_en, description_ar, personality_summary_en, personality_summary_ar")
+
 
     .eq("slug", slug)
     .single();
@@ -273,7 +274,9 @@ const { data: categories, error: categoriesError } = await supabase
                   )}
 
                   <SectionCard title={sectionTitle}>
-                    {section === "intro" && <IntroSection text={career.intro_en} />}
+                    {section === "intro" && (
+  <IntroSection text={(career.description_en ?? career.intro_en ?? "").trim()} />
+)}
 
                     {section === "role" && <RoleSection tasks={tasks} />}
 
