@@ -30,7 +30,8 @@ export default async function MajorProfilePage({
 
   const { data: major, error } = await supabase
     .from("majors")
-    .select("id, slug, title_en, intro_en, intro_ar")
+    .select("id, slug, title_en, intro_en, intro_ar, description_en, description_ar")
+
     .eq("slug", slug)
     .single();
 
@@ -143,7 +144,7 @@ if (section === "careers") {
           {/* Content */}
           <SectionCard title={sectionTitle}>
             {section === "intro" && (
-              <IntroSection text={major.intro_en ?? ""} />
+              <IntroSection text={(major.description_en ?? major.intro_en ?? "").trim()} />
             )}
 
             {section === "classes" && <MajorClassesSection classes={classes} />}
