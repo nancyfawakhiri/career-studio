@@ -2,6 +2,9 @@ import { BackgroundShell } from "@/components/site/BackgroundShell";
 import { Navbar } from "@/components/site/Navbar";
 import { LibraryCard } from "@/components/cards/LibraryCard";
 import { supabase } from "@/lib/supabase/client";
+import { MobileBucketPillSelect } from "@/components/site/MobileBucketPillSelect";
+
+
 
 const BUCKETS = [
   { key: "artistic", label: "Artistic", color: "#8FBFA3" },
@@ -20,13 +23,11 @@ export default async function CareersLibraryPage({
   searchParams: Promise<{ bucket?: string }>;
 }) {
   const sp = await searchParams;
-
   const bucket = (sp.bucket ?? "artistic") as BucketKey;
 
-  // Compute the active color based on the selected bucket
-  const activeColor = BUCKETS.find((b) => b.key === bucket)?.color ?? "#8FBFA3";
+  const activeBucket = BUCKETS.find((b) => b.key === bucket) ?? BUCKETS[0];
+  const activeColor = activeBucket.color;
 
-  // Fetch careers that are linked to a specific interest category
   const { data, error } = await supabase
     .from("career_interest_categories")
     .select(
@@ -45,7 +46,8 @@ export default async function CareersLibraryPage({
           <h1 className="text-3xl font-semibold">Error loading careers</h1>
           <p className="mt-3 text-white/70">{error.message}</p>
           <p className="mt-3 text-white/70">
-            If this says "permission denied", you need SELECT access (RLS policy) for
+            If this says "permission denied", you need SELECT access (RLS policy)
+            for
             <code className="mx-2 px-2 py-1 rounded bg-white/10">
               career_interest_categories
             </code>
@@ -61,7 +63,6 @@ export default async function CareersLibraryPage({
     );
   }
 
-  // "data" is join rows. We only want the nested career objects.
   const rows =
     (data ?? [])
       .map((r: any) => r.careers)
@@ -75,7 +76,13 @@ export default async function CareersLibraryPage({
     <BackgroundShell>
       <Navbar />
 
-      <main className="mx-auto max-w-6xl px-6 pt-10 pb-20">
+      <main className="mx-auto max-w-6xl px-6 pt-10 pb-20 relative">
+        {/* Background PNG (place the file in /public/backgrounds/career-library.png) */}
+        <div
+          className="absolute inset-0 -z-10 opacity-30 bg-center bg-no-repeat bg-cover"
+          style={{ backgroundImage: "url('/backgrounds/career-library.png')" }}
+        />
+
         <h1 className="text-5xl font-semibold tracking-tight text-center">
           Careers Library
         </h1>
@@ -83,34 +90,67 @@ export default async function CareersLibraryPage({
           Explore careers based on your interests.
         </p>
 
-        {/* Bucket tabs */}
-        <div className="mt-12 flex flex-wrap justify-center gap-8 text-center">
-          {BUCKETS.map((b) => {
-            const isActive = b.key === bucket;
-            return (
-              <a
-                key={b.key}
-                href={`/careers?bucket=${b.key}`}
-                className="flex flex-col items-center gap-2"
-              >
-                <div
-                  className={isActive ? "px-6 py-3 rounded-xl font-semibold" : "px-6 py-3 text-white/80 hover:text-white"}
-                  style={isActive ? { backgroundColor: b.color, color: "#061A33" } : undefined}
+        {/* Buckets */}
+        <div className="mt-12">
+          {/* Desktop/tablet: show all buckets */}
+          <div className="hidden md:flex flex-wrap justify-center gap-8 text-center">
+            {BUCKETS.map((b) => {
+              const isActive = b.key === bucket;
+              return (
+                <a
+                  key={b.key}
+                  href={`/careers?bucket=${b.key}`}
+                  className="flex flex-col items-center gap-2"
                 >
-                  {b.label}
-                </div>
-                <div className="text-xs text-white/60">128 Jobs Total</div>
-                <div
-                  className="h-[3px] w-16 rounded-full"
-                  style={{ backgroundColor: isActive ? b.color : "rgba(255,255,255,0.2)" }}
-                />
-              </a>
-            );
-          })}
-        </div>
+                  <div
+                    className={
+                      isActive
+                        ? "px-6 py-3 rounded-xl font-semibold"
+                        : "px-6 py-3 text-white/80 hover:text-white"
+                    }
+                    style={
+                      isActive
+                        ? { backgroundColor: b.color, color: "#061A33" }
+                        : undefined
+                    }
+                  >
+                    {b.label}
+                  </div>
+
+                  <div className="text-xs text-white/60">128 Jobs Total</div>
+
+                  <div
+                    className="h-[3px] w-16 rounded-full"
+                    style={{
+                      backgroundColor: isActive
+                        ? b.color
+                        : "rgba(255,255,255,0.2)",
+                    }}
+                  />
+                </a>
+              );
+            })}
+          </div>
+
+          {/* Mobile: show active bucket + dropdown */}
+          {/* Mobile: single pill that opens a dropdown */}
+<div className="md:hidden flex justify-center">
+  <MobileBucketPillSelect
+    value={bucket}
+    basePath="/careers"
+    options={BUCKETS.map(({ key, label }) => ({ key, label }))}
+    colors={Object.fromEntries(BUCKETS.map((b) => [b.key, b.color])) as any}
+  />
+</div>
+
+<div className="md:hidden mt-2 text-center text-xs text-white/60">
+  Tap the category to switch
+</div>
+</div>
+
 
         {/* Cards */}
-        <section className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {rows.map((c) => (
             <LibraryCard
               key={c.slug}
@@ -122,13 +162,15 @@ export default async function CareersLibraryPage({
           ))}
         </section>
 
-        {/* Empty state if no careers linked to this bucket yet */}
+        {/* Empty state */}
         {rows.length === 0 && (
           <div className="mt-10 text-center text-white/70">
-            No careers are linked to <span className="text-white">{bucket}</span>{" "}
-            yet. Add rows into <code className="px-2 py-1 rounded bg-white/10">
+            No careers are linked to{" "}
+            <span className="text-white">{bucket}</span> yet. Add rows into{" "}
+            <code className="px-2 py-1 rounded bg-white/10">
               career_interest_categories
-            </code>.
+            </code>
+            .
           </div>
         )}
       </main>

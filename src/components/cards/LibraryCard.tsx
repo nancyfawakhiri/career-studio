@@ -17,32 +17,49 @@ export function LibraryCard({
         relative rounded-2xl
         bg-gradient-to-b from-[#0A2545] to-[#071B33]
         p-8
-        transition
+        overflow-hidden
       "
       style={{
         border: `1px solid ${accentColor}99`,
         boxShadow: `0 0 0 1px ${accentColor}40, 0 30px 80px rgba(0,0,0,0.60)`,
       }}
     >
-      <h3 className="text-2xl font-semibold leading-snug">
-        {title}
-      </h3>
+      {/* subtle corner tint */}
+      <div
+        className="absolute -top-20 -left-20 h-56 w-56 opacity-25 blur-2xl"
+        style={{
+          background: `radial-gradient(circle at center, ${accentColor}, transparent 60%)`,
+        }}
+      />
 
-      <p className="mt-4 text-white/70 leading-relaxed line-clamp-4">
-        {description}
-      </p>
+      <div className="relative">
+        {/* Title centered */}
+        <h3 className="text-center text-[24px] font-semibold leading-snug">
+          {title}
+        </h3>
 
-      <div className="mt-8">
-        <Link
-          href={href}
-          className="
-            block text-center px-4 py-3 rounded-xl
-            border border-white/40 text-white
-            hover:bg-white/10 transition
-          "
-        >
-          Explore Career
-        </Link>
+        {/* Description */}
+        <p className="mt-6 text-[14px] font-normal text-white/90 leading-relaxed line-clamp-4 text-center">
+          {description}
+        </p>
+
+        {/* Button */}
+        <div className="mt-8 flex justify-center">
+          <Link
+            href={href}
+            className="
+              inline-flex items-center justify-center
+              px-5 py-2.5
+              rounded-lg
+              border
+              text-[16px] font-semibold
+              hover:bg-white/10 transition
+            "
+            style={{ borderColor: "#5B85AA" }}
+          >
+            Explore
+          </Link>
+        </div>
       </div>
     </div>
   );
