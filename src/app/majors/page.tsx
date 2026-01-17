@@ -4,12 +4,12 @@ import { LibraryCard } from "@/components/cards/LibraryCard";
 import { supabase } from "@/lib/supabase/client";
 
 const BUCKETS = [
-  { key: "artistic", label: "Artistic" },
-  { key: "social", label: "Social" },
-  { key: "enterprising", label: "Enterprising" },
-  { key: "investigative", label: "Investigative" },
-  { key: "conventional", label: "Conventional" },
-  { key: "realistic", label: "Realistic" },
+  { key: "artistic", label: "Artistic", color: "#8FBFA3" },
+  { key: "social", label: "Social", color: "#F2C94C" },
+  { key: "enterprising", label: "Enterprising", color: "#56CCF2" },
+  { key: "investigative", label: "Investigative", color: "#9B51E0" },
+  { key: "conventional", label: "Conventional", color: "#EB5757" },
+  { key: "realistic", label: "Realistic", color: "#2F80ED" },
 ] as const;
 
 type BucketKey = (typeof BUCKETS)[number]["key"];
@@ -21,6 +21,9 @@ export default async function MajorsLibraryPage({
 }) {
   const sp = await searchParams;
   const bucket = (sp.bucket ?? "artistic") as BucketKey;
+
+  // Compute the active color based on the selected bucket
+  const activeColor = BUCKETS.find((b) => b.key === bucket)?.color ?? "#8FBFA3";
 
   const { data, error } = await supabase
     .from("major_interest_categories")
@@ -61,28 +64,45 @@ export default async function MajorsLibraryPage({
         <h1 className="text-5xl font-semibold tracking-tight text-center">
           Majors Library
         </h1>
+        <p className="mt-4 text-white/70 text-center max-w-2xl mx-auto">
+          Explore majors based on your interests.
+        </p>
 
-        {/* Buckets */}
-        <div className="mt-10 flex flex-wrap justify-center gap-6 text-sm text-white/70">
-          {BUCKETS.map((b) => (
-            <a
-              key={b.key}
-              href={`/majors?bucket=${b.key}`}
-              className={b.key === bucket ? "text-white" : "hover:text-white"}
-            >
-              {b.label}
-            </a>
-          ))}
+        {/* Bucket tabs */}
+        <div className="mt-12 flex flex-wrap justify-center gap-8 text-center">
+          {BUCKETS.map((b) => {
+            const isActive = b.key === bucket;
+            return (
+              <a
+                key={b.key}
+                href={`/majors?bucket=${b.key}`}
+                className="flex flex-col items-center gap-2"
+              >
+                <div
+                  className={isActive ? "px-6 py-3 rounded-xl font-semibold" : "px-6 py-3 text-white/80 hover:text-white"}
+                  style={isActive ? { backgroundColor: b.color, color: "#061A33" } : undefined}
+                >
+                  {b.label}
+                </div>
+                <div className="text-xs text-white/60">128 Programs Total</div>
+                <div
+                  className="h-[3px] w-16 rounded-full"
+                  style={{ backgroundColor: isActive ? b.color : "rgba(255,255,255,0.2)" }}
+                />
+              </a>
+            );
+          })}
         </div>
 
         {/* Cards */}
-        <section className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {rows.map((m) => (
             <LibraryCard
               key={m.slug}
               title={m.title_en}
               description={m.intro_en}
               href={`/majors/${m.slug}?section=intro`}
+              accentColor={activeColor}
             />
           ))}
         </section>
