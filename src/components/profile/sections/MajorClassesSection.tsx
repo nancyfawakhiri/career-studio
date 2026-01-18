@@ -13,12 +13,18 @@ export function MajorClassesSection({
       {classes.map((c) => (
         <div
           key={c.id}
-          className="rounded-2xl border border-white/15 bg-white/5 p-5"
+          className="
+            rounded-2xl p-5
+            border border-black/10 bg-white/70
+            dark:border-white/15 dark:bg-white/5
+          "
         >
-          <div className="text-white font-semibold">{c.title_en}</div>
+          <div className="font-semibold text-[#061A33] dark:text-white">
+            {c.title_en}
+          </div>
 
           {c.description_en && (
-            <div className="mt-2 text-white/70 leading-relaxed">
+            <div className="mt-2 leading-relaxed text-[#061A33]/70 dark:text-white/70">
               {c.description_en}
             </div>
           )}
@@ -28,7 +34,9 @@ export function MajorClassesSection({
               href={c.video_url}
               target="_blank"
               rel="noreferrer"
-              className="mt-3 inline-block text-sm text-white/80 hover:text-white underline underline-offset-4"
+              className="mt-3 inline-block text-sm underline underline-offset-4
+                         text-[#061A33]/80 hover:text-[#061A33]
+                         dark:text-white/80 dark:hover:text-white"
             >
               Watch lecture
             </a>
@@ -37,7 +45,7 @@ export function MajorClassesSection({
       ))}
 
       {classes.length === 0 && (
-        <div className="text-white/70">No classes added yet.</div>
+        <div className="text-[#061A33]/70 dark:text-white/70">No classes added yet.</div>
       )}
     </div>
   );

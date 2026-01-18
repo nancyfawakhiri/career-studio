@@ -16,28 +16,34 @@ export function LibraryCard({
   return (
     <div
       className="
-        relative rounded-2xl
-        bg-gradient-to-b from-[#0A2545] to-[#071B33]
-        p-5
-        overflow-hidden
+        relative rounded-2xl p-5 overflow-hidden
+        bg-white
+        border
+        dark:border-transparent
+        dark:bg-gradient-to-b dark:from-[#0A2545] dark:to-[#071B33]
       "
       style={{
         border: `1px solid ${accentColor}99`,
-        boxShadow: `0 0 0 1px ${accentColor}40, 0 30px 80px rgba(0,0,0,0.60)`,
+        boxShadow: `0 0 0 1px ${accentColor}40, 0 30px 80px rgba(0,0,0,0.25)`,
       }}
     >
-      {/* Title */}
-      <h3 className="text-center text-[24px] font-semibold leading-snug">
+      {/* subtle inner corner tint */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-10"
+        style={{
+          backgroundImage: `radial-gradient(circle at 10% 10%, ${accentColor}, transparent 60%)`,
+        }}
+      />
+
+      <h3 className="relative z-10 text-center text-[24px] font-semibold leading-snug text-[#061A33] dark:text-white">
         {title}
       </h3>
-      
-      {/* Description */}
-      <p className="mt-6 text-[14px] font-normal text-white/70 leading-relaxed line-clamp-4 text-center">
+
+      <p className="relative z-10 mt-6 text-[14px] font-normal leading-relaxed line-clamp-4 text-center text-[#061A33]/70 dark:text-white/70">
         {description}
       </p>
-      
-      {/* Button */}
-      <div className="mt-8">
+
+      <div className="relative z-10 mt-8">
         <Link
           href={href}
           className="
@@ -46,8 +52,10 @@ export function LibraryCard({
             px-5 py-2.5
             rounded-lg
             border
-            text-[16px] 
-            hover:bg-white/10 transition
+            text-[16px] font-semibold
+            text-[#061A33] dark:text-white
+            bg-transparent
+            hover:bg-black/5 dark:hover:bg-white/10 transition
           "
           style={{ borderColor: "#5B85AA" }}
         >

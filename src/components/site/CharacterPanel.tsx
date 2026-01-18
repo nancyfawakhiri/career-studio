@@ -27,7 +27,13 @@ export function CharacterPanel({
 
   return (
     <div className="flex flex-col items-center md:items-start gap-4">
-      <div className="relative h-[360px] w-[260px] rounded-3xl border border-white/15 bg-white/5 overflow-hidden">
+      <div
+        className="
+          relative h-[360px] w-[260px] rounded-3xl overflow-hidden
+          border border-black/10 bg-white/70
+          dark:border-white/15 dark:bg-white/5
+        "
+      >
         {activeUrl ? (
           <Image
             src={activeUrl}
@@ -37,22 +43,27 @@ export function CharacterPanel({
             priority
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-white/50 text-sm">
+          <div className="absolute inset-0 flex items-center justify-center text-[#061A33]/50 dark:text-white/50 text-sm">
             Character image
           </div>
         )}
       </div>
 
-      {/* Toggle only if both exist */}
       {canToggle ? (
-        <div className="inline-flex rounded-full border border-white/15 bg-white/5 p-1">
+        <div
+          className="
+            inline-flex rounded-full p-1
+            border border-black/10 bg-black/5
+            dark:border-white/15 dark:bg-white/5
+          "
+        >
           <button
             onClick={() => setVariant("female")}
             className={
               "px-4 py-2 rounded-full text-sm transition " +
               (variant === "female"
-                ? "bg-white/15 text-white"
-                : "text-white/70 hover:text-white")
+                ? "bg-black/10 text-[#061A33] dark:bg-white/15 dark:text-white"
+                : "text-[#061A33]/70 hover:text-[#061A33] dark:text-white/70 dark:hover:text-white")
             }
           >
             Female
@@ -62,8 +73,8 @@ export function CharacterPanel({
             className={
               "px-4 py-2 rounded-full text-sm transition " +
               (variant === "male"
-                ? "bg-white/15 text-white"
-                : "text-white/70 hover:text-white")
+                ? "bg-black/10 text-[#061A33] dark:bg-white/15 dark:text-white"
+                : "text-[#061A33]/70 hover:text-[#061A33] dark:text-white/70 dark:hover:text-white")
             }
           >
             Male

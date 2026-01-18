@@ -6,8 +6,16 @@ export function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-6">
-      <h2 className="text-xl font-semibold">{title}</h2>
+    <div
+      className="
+        mt-6 rounded-2xl p-6
+        border border-black/10 bg-white/70
+        dark:border-white/15 dark:bg-white/5
+      "
+    >
+      <h2 className="text-xl font-semibold text-[#061A33] dark:text-white">
+        {title}
+      </h2>
       <div className="mt-4">{children}</div>
     </div>
   );
