@@ -4,13 +4,13 @@ export function LibraryCard({
   title,
   description,
   href,
-  accentColor,
+  accentColor = "#5B85AA",
   ctaLabel = "Explore",
 }: {
   title: string;
   description: string;
   href: string;
-  accentColor: string;
+  accentColor?: string;
   ctaLabel?: string;
 }) {
   return (

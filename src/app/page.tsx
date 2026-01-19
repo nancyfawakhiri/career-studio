@@ -44,8 +44,6 @@ function StatCard({
   );
 }
 
-<FutureConfusionSection />
- 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#071B33] text-white relative overflow-hidden">

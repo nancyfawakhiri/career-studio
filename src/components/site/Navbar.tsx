@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export function Navbar() {
   const [open, setOpen] = React.useState(false);
-  const [lang, setLang] = React.useState<"en" | "ar">("en");
+  const { lang, toggleLang } = useLanguage();
 
   // Close menu on route change-esque (basic UX)
   React.useEffect(() => {
@@ -58,7 +59,7 @@ export function Navbar() {
       {/* Language Toggle */}
       <button
         type="button"
-        onClick={() => setLang((p) => (p === "en" ? "ar" : "en"))}
+        onClick={toggleLang}
         className={
           mobile
             ? "mt-2 inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-3 text-xs font-semibold text-white hover:bg-white/15"

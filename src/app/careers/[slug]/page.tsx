@@ -1,29 +1,21 @@
 import { resolveAssetUrl } from "@/lib/assets/url";
-
 import { BackgroundShell } from "@/components/site/BackgroundShell";
 import { Navbar } from "@/components/site/Navbar";
-import { CharacterPanel } from "@/components/site/CharacterPanel";
-import { SectionCard } from "@/components/profile/SectionCard";
-
-import { IntroSection } from "@/components/profile/sections/IntroSection";
-import { RoleSection } from "@/components/profile/sections/RoleSection";
-import { SkillsSection } from "@/components/profile/sections/SkillsSection";
-import { EducationSection } from "@/components/profile/sections/EducationSection";
-import { WorkGlanceSection } from "@/components/profile/sections/WorkGlanceSection";
-
+import { CareerProfileClient, CareerData } from "@/components/profile/CareerProfileClient";
 import { supabase } from "@/lib/supabase/client";
 import { educationLabel } from "@/lib/mappers/education";
 
-const SECTIONS = [
-  { key: "intro", label: "Intro" },
-  { key: "role", label: "The Role" },
-  { key: "skills", label: "Skills" },
-  { key: "education", label: "Education" },
-  { key: "personality", label: "Personality" },
-  { key: "work", label: "Work At a Glance" },
-] as const;
-
-type SectionKey = (typeof SECTIONS)[number]["key"];
+// Pre-compute education labels for all possible levels
+const EDUCATION_LABELS: Record<string, string> = {
+  phd: educationLabel("phd"),
+  masters: educationLabel("masters"),
+  bachelors: educationLabel("bachelors"),
+  associate: educationLabel("associate"),
+  some_college: educationLabel("some_college"),
+  high_school: educationLabel("high_school"),
+  less_than_high_school: educationLabel("less_than_high_school"),
+  unknown_or_other: educationLabel("unknown_or_other"),
+};
 
 export default async function CareerProfilePage({
   params,
@@ -34,14 +26,32 @@ export default async function CareerProfilePage({
 }) {
   const { slug } = await params;
   const sp = await searchParams;
+  const initialSection = sp.section || "intro";
 
-  const section = (sp.section as SectionKey) || "intro";
-  const sectionTitle = SECTIONS.find((s) => s.key === section)?.label ?? "Intro";
-
-  // 1) Career core + background asset
+  // Single optimized query - fetches everything including both languages
   const { data: career, error: careerError } = await supabase
     .from("careers")
-    .select("id, slug, title_en, intro_en, intro_ar, description_en, description_ar, personality_summary_en, personality_summary_ar")
+    .select(`
+      id,
+      slug,
+      title_en,
+      title_ar,
+      intro_en,
+      intro_ar,
+      description_en,
+      description_ar,
+      personality_summary_en,
+      personality_summary_ar,
+      career_interest_categories (
+        interest_categories ( title_en, title_ar )
+      ),
+      career_tasks ( title_en, title_ar, order_index ),
+      career_skills ( skills ( name_en, name_ar, type ) ),
+      career_education_stats ( level, percent ),
+      career_work_glance ( level, work_dimensions ( title_en, title_ar, order_index ) ),
+      career_character_assets ( variant, assets:asset_id ( external_url, storage_path ) ),
+      career_majors ( majors ( title_en, title_ar ) )
+    `)
     .eq("slug", slug)
     .single();
 
@@ -57,256 +67,86 @@ export default async function CareerProfilePage({
     );
   }
 
-  const careerId = career.id;
-  
-  // Categories (RIASEC buckets) for this career
-  const { data: categories, error: categoriesError } = await supabase
-    .from("career_interest_categories")
-    .select("interest_categories(title_en)")
-    .eq("career_id", careerId);
-
-  // 2) Fetch all section data + character assets + majors
-  const [tasksRes, skillsRes, eduRes, workRes, charactersRes, majorsRes] =
-    await Promise.all([
-      supabase
-        .from("career_tasks")
-        .select("title_en, order_index")
-        .eq("career_id", careerId)
-        .order("order_index", { ascending: true }),
-
-      supabase
-        .from("career_skills")
-        .select("skills(name_en, type)")
-        .eq("career_id", careerId),
-
-      supabase
-        .from("career_education_stats")
-        .select("level, percent")
-        .eq("career_id", careerId),
-
-      supabase
-        .from("career_work_glance")
-        .select("level, work_dimensions(title_en, order_index)")
-        .eq("career_id", careerId),
-
-      supabase
-        .from("career_character_assets")
-        .select("variant, assets:asset_id(external_url, storage_path)")
-        .eq("career_id", careerId),
-
-      supabase
-        .from("career_majors")
-        .select("majors(title_en, title_ar)")
-        .eq("career_id", careerId),
-    ]);
-
-  // 3) Normalize for UI components
-  const tasks = (tasksRes.data ?? []).map((t) => t.title_en);
-
-  const hardSkills: string[] = [];
-  const softSkills: string[] = [];
-  for (const row of skillsRes.data ?? []) {
-    const s = row.skills as null | { name_en: string; type: "hard" | "soft" };
-    if (!s?.name_en) continue;
-    if (s.type === "hard") hardSkills.push(s.name_en);
-    else softSkills.push(s.name_en);
-  }
-
-  const educationSlices = (eduRes.data ?? [])
-    .map((e) => ({
-      label: educationLabel(e.level),
+  // Transform the nested data into the format expected by the client component
+  const careerData: CareerData = {
+    id: career.id,
+    slug: career.slug,
+    title_en: career.title_en,
+    title_ar: career.title_ar,
+    intro_en: career.intro_en,
+    intro_ar: career.intro_ar,
+    description_en: career.description_en,
+    description_ar: career.description_ar,
+    personality_summary_en: career.personality_summary_en,
+    personality_summary_ar: career.personality_summary_ar,
+    categories: (career.career_interest_categories ?? [])
+      .map((c: any) => c.interest_categories)
+      .filter(Boolean),
+    tasks: (career.career_tasks ?? []).map((t: any) => ({
+      title_en: t.title_en,
+      title_ar: t.title_ar,
+      order_index: t.order_index,
+    })),
+    skills: (career.career_skills ?? [])
+      .map((s: any) => s.skills)
+      .filter(Boolean)
+      .map((s: any) => ({
+        name_en: s.name_en,
+        name_ar: s.name_ar,
+        type: s.type as "hard" | "soft",
+      })),
+    educationStats: (career.career_education_stats ?? []).map((e: any) => ({
+      level: e.level,
       percent: Number(e.percent),
-    }))
-    .sort((a, b) => b.percent - a.percent);
-
-  const workRows = (workRes.data ?? [])
-    .map((w) => {
-      const dim = w.work_dimensions as
-        | null
-        | { title_en: string; order_index: number };
-      return {
-        label: dim?.title_en ?? "Dimension",
-        level: w.level as "low" | "medium" | "high",
-        order: dim?.order_index ?? 999,
-      };
-    })
-    .sort((a, b) => a.order - b.order)
-    .map(({ label, level }) => ({ label, level }));
-
-  // Normalize linked majors
-  const linkedMajors =
-    (majorsRes.data ?? [])
-      .map((r: any) => r.majors)
+    })),
+    workDimensions: (career.career_work_glance ?? [])
+      .map((w: any) => {
+        const dim = w.work_dimensions;
+        if (!dim) return null;
+        return {
+          level: w.level as "low" | "medium" | "high",
+          title_en: dim.title_en as string,
+          title_ar: dim.title_ar as string | null,
+          order_index: (dim.order_index ?? 999) as number,
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null),
+    linkedMajors: (career.career_majors ?? [])
+      .map((m: any) => m.majors)
       .filter(Boolean)
       .map((m: any) => ({
-        title: m.title_en, // Using English only since we removed Arabic support
-      }));
-
-  // Character URLs (male/female)
-  const maleUrl = resolveAssetUrl(
-    (charactersRes.data ?? []).find((c: any) => c.variant === "male")?.assets ??
-      null
-  );
-  const femaleUrl = resolveAssetUrl(
-    (charactersRes.data ?? []).find((c: any) => c.variant === "female")?.assets ??
-      null
-  );
-
-  const anyErrors =
-    tasksRes.error ||
-    skillsRes.error ||
-    eduRes.error ||
-    workRes.error ||
-    charactersRes.error ||
-    categoriesError ||
-    majorsRes.error;
+        title_en: m.title_en,
+        title_ar: m.title_ar,
+      })),
+    maleUrl: (() => {
+      const found = (career.career_character_assets ?? []).find((c: any) => c.variant === "male");
+      const asset = found?.assets;
+      // assets could be an object or array depending on Supabase's inference
+      if (Array.isArray(asset)) {
+        return resolveAssetUrl(asset[0] ?? null);
+      }
+      return resolveAssetUrl(asset ?? null);
+    })(),
+    femaleUrl: (() => {
+      const found = (career.career_character_assets ?? []).find((c: any) => c.variant === "female");
+      const asset = found?.assets;
+      if (Array.isArray(asset)) {
+        return resolveAssetUrl(asset[0] ?? null);
+      }
+      return resolveAssetUrl(asset ?? null);
+    })(),
+  };
 
   return (
     <BackgroundShell>
       <Navbar />
-
       <main className="mx-auto max-w-6xl px-6 pt-10 pb-20">
         <section className="relative">
-          <div className="rounded-3xl border border-white/15 bg-white/5 overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.5)]">
-            {/* Background asset (fallback if missing) */}
-            <div className="absolute inset-0 opacity-25">
-              <div className="h-full w-full bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.10),transparent_55%)]" />
-            </div>
-
-            <div className="relative p-8 md:p-12">
-              <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10 items-start">
-                {/* Character slot: pass male/female urls (implement toggle inside CharacterPanel) */}
-                <CharacterPanel
-                  careerTitle={career.title_en}
-                  maleUrl={maleUrl}
-                  femaleUrl={femaleUrl}
-                />
-
-                <div>
-                  <div className="inline-flex items-center rounded-full bg-emerald-500/20 border border-emerald-400/30 px-3 py-1 text-xs text-emerald-200">
-                    In Demand
-                  </div>
-
-                  <h1 className="mt-4 text-5xl font-semibold tracking-tight">
-                    {career.title_en}
-                  </h1>
-
-                  <p className="mt-4 text-white/70 leading-relaxed max-w-2xl line-clamp-2">
-                    {career.intro_en}
-                  </p>
-
-                  <div className="mt-8">
-                    {/* Title */}
-                    <div className="text-sm text-white/60">
-                      This career is a great fit if you are:
-                    </div>
-
-                    {/* Pills */}
-                    <div className="mt-3 flex flex-wrap gap-3">
-                      {(categories ?? []).map((c: any, i: number) => (
-                        <span
-                          key={i}
-                          className="px-4 py-2 rounded-full bg-white/10 border border-white/15 text-sm text-white/80"
-                        >
-                          {c.interest_categories.title_en}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Explanation + links */}
-                    <div className="mt-3 text-xs text-white/50 leading-relaxed">
-                      Based on{" "}
-                      <a
-                        href="https://en.wikipedia.org/wiki/Holland_Codes"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline underline-offset-4 hover:text-white"
-                      >
-                        Holland's Interests Model
-                      </a>
-                      .{" "}
-                      <br className="hidden sm:block" />
-                      Not sure what your interests are?{" "}
-                      <a
-                        href="/interests"
-                        className="underline underline-offset-4 hover:text-white"
-                      >
-                        Find out here
-                      </a>
-                      .
-                    </div>
-                  </div>
-
-                  <div className="mt-8">
-                    <div className="text-sm text-white/60">Salary</div>
-                    <div className="mt-1 text-lg text-white">$10,000 - $20,000</div>
-                  </div>
-
-                  <div className="mt-10 flex gap-8 overflow-x-auto text-white/70 pb-2">
-                    {SECTIONS.map((s) => (
-                      <a
-                        key={s.key}
-                        href={`/careers/${career.slug}?section=${s.key}`}
-                        className={
-                          s.key === section
-                            ? "whitespace-nowrap text-white"
-                            : "whitespace-nowrap hover:text-white"
-                        }
-                      >
-                        {s.label}
-                      </a>
-                    ))}
-                  </div>
-
-                  {/* RLS / query errors */}
-                  {anyErrors && (
-                    <div className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-sm text-red-100">
-                      <div className="font-semibold">Some data could not load</div>
-                      <ul className="mt-2 list-disc pl-5 space-y-1">
-                        {tasksRes.error && <li>Role: {tasksRes.error.message}</li>}
-                        {skillsRes.error && <li>Skills: {skillsRes.error.message}</li>}
-                        {eduRes.error && <li>Education: {eduRes.error.message}</li>}
-                        {workRes.error && <li>Work: {workRes.error.message}</li>}
-                        {categoriesError && <li>Categories: {categoriesError.message}</li>}
-                        {charactersRes.error && <li>Characters: {charactersRes.error.message}</li>}
-                        {majorsRes.error && <li>Majors: {majorsRes.error.message}</li>}
-                      </ul>
-                      <div className="mt-3 text-red-100/80">
-                        If you see "permission denied", you need SELECT policies (RLS) for those tables.
-                      </div>
-                    </div>
-                  )}
-
-                  <SectionCard title={sectionTitle}>
-                    {section === "intro" && (
-                      <IntroSection text={(career.description_en ?? career.intro_en ?? "").trim()} />
-                    )}
-
-                    {section === "role" && <RoleSection tasks={tasks} />}
-
-                    {section === "skills" && (
-                      <SkillsSection hard={hardSkills} soft={softSkills} />
-                    )}
-
-                    {section === "education" && (
-                      <EducationSection slices={educationSlices} majors={linkedMajors} />
-                    )}
-
-                    {section === "personality" && (
-                      <div className="text-white/70 leading-relaxed whitespace-pre-line">
-                        {career.personality_summary_en || "No personality summary yet."}
-                      </div>
-                    )}
-
-                    {section === "work" && <WorkGlanceSection rows={workRows} />}
-                  </SectionCard>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          
-          
+          <CareerProfileClient
+            career={careerData}
+            initialSection={initialSection as any}
+            educationLabels={EDUCATION_LABELS}
+          />
         </section>
       </main>
     </BackgroundShell>
