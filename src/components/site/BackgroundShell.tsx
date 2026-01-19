@@ -1,3 +1,4 @@
+import { FloatingRobot } from "@/components/site/FloatingRobot";
 export function BackgroundShell({ children }: { children: React.ReactNode }) {
   return (
     <div
@@ -12,6 +13,7 @@ export function BackgroundShell({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
+      <FloatingRobot />
     </div>
   );
 }
