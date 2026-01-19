@@ -1,4 +1,3 @@
-
 import { resolveAssetUrl } from "@/lib/assets/url";
 
 import { BackgroundShell } from "@/components/site/BackgroundShell";
@@ -14,8 +13,6 @@ import { WorkGlanceSection } from "@/components/profile/sections/WorkGlanceSecti
 
 import { supabase } from "@/lib/supabase/client";
 import { educationLabel } from "@/lib/mappers/education";
-
-
 
 const SECTIONS = [
   { key: "intro", label: "Intro" },
@@ -45,8 +42,6 @@ export default async function CareerProfilePage({
   const { data: career, error: careerError } = await supabase
     .from("careers")
     .select("id, slug, title_en, intro_en, intro_ar, description_en, description_ar, personality_summary_en, personality_summary_ar")
-
-
     .eq("slug", slug)
     .single();
 
@@ -63,15 +58,15 @@ export default async function CareerProfilePage({
   }
 
   const careerId = career.id;
+  
   // Categories (RIASEC buckets) for this career
-const { data: categories, error: categoriesError } = await supabase
-  .from("career_interest_categories")
-  .select("interest_categories(title_en)")
-  .eq("career_id", careerId);
+  const { data: categories, error: categoriesError } = await supabase
+    .from("career_interest_categories")
+    .select("interest_categories(title_en)")
+    .eq("career_id", careerId);
 
-
-  // 2) Fetch all section data + character assets
-  const [tasksRes, skillsRes, eduRes, workRes, charactersRes] =
+  // 2) Fetch all section data + character assets + majors
+  const [tasksRes, skillsRes, eduRes, workRes, charactersRes, majorsRes] =
     await Promise.all([
       supabase
         .from("career_tasks")
@@ -97,6 +92,11 @@ const { data: categories, error: categoriesError } = await supabase
       supabase
         .from("career_character_assets")
         .select("variant, assets:asset_id(external_url, storage_path)")
+        .eq("career_id", careerId),
+
+      supabase
+        .from("career_majors")
+        .select("majors(title_en, title_ar)")
         .eq("career_id", careerId),
     ]);
 
@@ -133,8 +133,14 @@ const { data: categories, error: categoriesError } = await supabase
     .sort((a, b) => a.order - b.order)
     .map(({ label, level }) => ({ label, level }));
 
-  // Background URL
- 
+  // Normalize linked majors
+  const linkedMajors =
+    (majorsRes.data ?? [])
+      .map((r: any) => r.majors)
+      .filter(Boolean)
+      .map((m: any) => ({
+        title: m.title_en, // Using English only since we removed Arabic support
+      }));
 
   // Character URLs (male/female)
   const maleUrl = resolveAssetUrl(
@@ -147,13 +153,13 @@ const { data: categories, error: categoriesError } = await supabase
   );
 
   const anyErrors =
-  tasksRes.error ||
-  skillsRes.error ||
-  eduRes.error ||
-  workRes.error ||
-  charactersRes.error ||
-  categoriesError;
-
+    tasksRes.error ||
+    skillsRes.error ||
+    eduRes.error ||
+    workRes.error ||
+    charactersRes.error ||
+    categoriesError ||
+    majorsRes.error;
 
   return (
     <BackgroundShell>
@@ -165,7 +171,7 @@ const { data: categories, error: categoriesError } = await supabase
             {/* Background asset (fallback if missing) */}
             <div className="absolute inset-0 opacity-25">
               <div className="h-full w-full bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.10),transparent_55%)]" />
-              </div>
+            </div>
 
             <div className="relative p-8 md:p-12">
               <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-10 items-start">
@@ -175,8 +181,6 @@ const { data: categories, error: categoriesError } = await supabase
                   maleUrl={maleUrl}
                   femaleUrl={femaleUrl}
                 />
-              
-
 
                 <div>
                   <div className="inline-flex items-center rounded-full bg-emerald-500/20 border border-emerald-400/30 px-3 py-1 text-xs text-emerald-200">
@@ -191,47 +195,47 @@ const { data: categories, error: categoriesError } = await supabase
                     {career.intro_en}
                   </p>
 
-                      <div className="mt-8">
-  {/* Title */}
-  <div className="text-sm text-white/60">
-    This career is a great fit if you are:
-  </div>
+                  <div className="mt-8">
+                    {/* Title */}
+                    <div className="text-sm text-white/60">
+                      This career is a great fit if you are:
+                    </div>
 
-  {/* Pills */}
-  <div className="mt-3 flex flex-wrap gap-3">
-    {(categories ?? []).map((c: any, i: number) => (
-      <span
-        key={i}
-        className="px-4 py-2 rounded-full bg-white/10 border border-white/15 text-sm text-white/80"
-      >
-        {c.interest_categories.title_en}
-      </span>
-    ))}
-  </div>
+                    {/* Pills */}
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      {(categories ?? []).map((c: any, i: number) => (
+                        <span
+                          key={i}
+                          className="px-4 py-2 rounded-full bg-white/10 border border-white/15 text-sm text-white/80"
+                        >
+                          {c.interest_categories.title_en}
+                        </span>
+                      ))}
+                    </div>
 
-  {/* Explanation + links */}
-  <div className="mt-3 text-xs text-white/50 leading-relaxed">
-    Based on{" "}
-    <a
-      href="https://en.wikipedia.org/wiki/Holland_Codes"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="underline underline-offset-4 hover:text-white"
-    >
-      Holland’s Interests Model
-    </a>
-    .{" "}
-    <br className="hidden sm:block" />
-    Not sure what your interests are?{" "}
-    <a
-      href="/interests"
-      className="underline underline-offset-4 hover:text-white"
-    >
-      Find out here
-    </a>
-    .
-  </div>
-</div>
+                    {/* Explanation + links */}
+                    <div className="mt-3 text-xs text-white/50 leading-relaxed">
+                      Based on{" "}
+                      <a
+                        href="https://en.wikipedia.org/wiki/Holland_Codes"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline underline-offset-4 hover:text-white"
+                      >
+                        Holland's Interests Model
+                      </a>
+                      .{" "}
+                      <br className="hidden sm:block" />
+                      Not sure what your interests are?{" "}
+                      <a
+                        href="/interests"
+                        className="underline underline-offset-4 hover:text-white"
+                      >
+                        Find out here
+                      </a>
+                      .
+                    </div>
+                  </div>
 
                   <div className="mt-8">
                     <div className="text-sm text-white/60">Salary</div>
@@ -264,19 +268,19 @@ const { data: categories, error: categoriesError } = await supabase
                         {eduRes.error && <li>Education: {eduRes.error.message}</li>}
                         {workRes.error && <li>Work: {workRes.error.message}</li>}
                         {categoriesError && <li>Categories: {categoriesError.message}</li>}
-
                         {charactersRes.error && <li>Characters: {charactersRes.error.message}</li>}
+                        {majorsRes.error && <li>Majors: {majorsRes.error.message}</li>}
                       </ul>
                       <div className="mt-3 text-red-100/80">
-                        If you see “permission denied”, you need SELECT policies (RLS) for those tables.
+                        If you see "permission denied", you need SELECT policies (RLS) for those tables.
                       </div>
                     </div>
                   )}
 
                   <SectionCard title={sectionTitle}>
                     {section === "intro" && (
-  <IntroSection text={(career.description_en ?? career.intro_en ?? "").trim()} />
-)}
+                      <IntroSection text={(career.description_en ?? career.intro_en ?? "").trim()} />
+                    )}
 
                     {section === "role" && <RoleSection tasks={tasks} />}
 
@@ -285,7 +289,7 @@ const { data: categories, error: categoriesError } = await supabase
                     )}
 
                     {section === "education" && (
-                      <EducationSection slices={educationSlices} />
+                      <EducationSection slices={educationSlices} majors={linkedMajors} />
                     )}
 
                     {section === "personality" && (
@@ -301,40 +305,8 @@ const { data: categories, error: categoriesError } = await supabase
             </div>
           </div>
 
-          {/* Floating robot + bubble */}
-          <div className="fixed right-6 bottom-6 z-50 flex items-end gap-3">
-            <button
-              className="
-                hidden sm:flex items-center
-                px-4 py-3 rounded-2xl
-                bg-orange-500 hover:bg-orange-600 transition
-                text-sm font-medium
-                relative
-              "
-            >
-              Ask me anything
-              <span
-                className="
-                  absolute -right-2 bottom-3
-                  h-3 w-3 rotate-45
-                  bg-orange-500
-                "
-              />
-            </button>
-
-            <button
-              className="
-                h-20 w-20 rounded-2xl
-                bg-white/10 border border-white/15
-                flex items-center justify-center
-                text-white/60 text-xs
-                hover:bg-white/15 transition
-              "
-              aria-label="Ask me anything"
-            >
-              Robot
-            </button>
-          </div>
+          
+          
         </section>
       </main>
     </BackgroundShell>
