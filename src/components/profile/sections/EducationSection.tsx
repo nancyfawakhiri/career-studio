@@ -1,3 +1,7 @@
+"use client";
+
+import { useLanguage } from "@/context/LanguageContext";
+
 const PALETTE = [
   "#6097FF",
   "#8FBFA3",
@@ -70,8 +74,9 @@ export function EducationSection({
   slices: Array<{ label: string; percent: number }>;
   majors?: Array<{ title: string }>;
 }) {
+  const { lang } = useLanguage();
   const sorted = [...slices].sort((a, b) => b.percent - a.percent);
-  
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-8 items-start">
@@ -100,11 +105,13 @@ export function EducationSection({
           })}
         </div>
       </div>
-      
+
       {/* Majors that lead to this career */}
       <div>
         <div className="text-sm font-semibold text-white">
-          Majors that commonly lead to this career
+          {lang === "ar"
+            ? "التخصصات التي تؤدي عادة لهذه المهنة"
+            : "Majors that commonly lead to this career"}
         </div>
         <div className="mt-3 text-white/70 leading-relaxed">
           {majors && majors.length > 0 ? (
@@ -120,7 +127,7 @@ export function EducationSection({
             </div>
           ) : (
             <div className="text-sm text-white/60">
-              No majors linked yet.
+              {lang === "ar" ? "لا توجد تخصصات مرتبطة بعد." : "No majors linked yet."}
             </div>
           )}
         </div>

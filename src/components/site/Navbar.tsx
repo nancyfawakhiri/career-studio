@@ -25,35 +25,35 @@ export function Navbar() {
         href="/careers"
         onClick={() => setOpen(false)}
       >
-        Careers
+        {lang === "ar" ? "المهن" : "Careers"}
       </Link>
       <Link
         className={mobile ? "py-3 hover:text-white" : "hover:text-white"}
         href="/majors"
         onClick={() => setOpen(false)}
       >
-        Majors
+        {lang === "ar" ? "التخصصات" : "Majors"}
       </Link>
       <Link
-  className={mobile ? "py-3 hover:text-white" : "hover:text-white"}
-  href="/blog"
-  onClick={() => setOpen(false)}
->
-  Blogs
-</Link>
+        className={mobile ? "py-3 hover:text-white" : "hover:text-white"}
+        href="/blog"
+        onClick={() => setOpen(false)}
+      >
+        {lang === "ar" ? "المدونة" : "Blogs"}
+      </Link>
       <Link
         className={mobile ? "py-3 hover:text-white" : "hover:text-white"}
         href="/request-feature"
         onClick={() => setOpen(false)}
       >
-        Request a Feature
+        {lang === "ar" ? "اطلب ميزة" : "Request a Feature"}
       </Link>
       <Link
         className={mobile ? "py-3 hover:text-white" : "hover:text-white"}
         href="/chat"
         onClick={() => setOpen(false)}
       >
-        Chat with Us
+        {lang === "ar" ? "تحدث معنا" : "Chat with Us"}
       </Link>
 
       {/* Language Toggle */}

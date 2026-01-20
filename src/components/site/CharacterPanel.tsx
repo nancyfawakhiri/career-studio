@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export function CharacterPanel({
   careerTitle,
@@ -12,6 +13,7 @@ export function CharacterPanel({
   maleUrl?: string | null;
   femaleUrl?: string | null;
 }) {
+  const { lang } = useLanguage();
   const hasMale = !!maleUrl;
   const hasFemale = !!femaleUrl;
 
@@ -38,7 +40,7 @@ export function CharacterPanel({
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-white/50 text-sm">
-            Character image
+            {lang === "ar" ? "صورة الشخصية" : "Character image"}
           </div>
         )}
       </div>
@@ -55,7 +57,7 @@ export function CharacterPanel({
                 : "text-white/70 hover:text-white")
             }
           >
-            Female
+            {lang === "ar" ? "أنثى" : "Female"}
           </button>
           <button
             onClick={() => setVariant("male")}
@@ -66,7 +68,7 @@ export function CharacterPanel({
                 : "text-white/70 hover:text-white")
             }
           >
-            Male
+            {lang === "ar" ? "ذكر" : "Male"}
           </button>
         </div>
       ) : null}
